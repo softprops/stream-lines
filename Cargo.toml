@@ -2,6 +2,7 @@
 name = "stream-lines"
 version = "0.1.0"
 authors = ["softprops <d.tangren@gmail.com>"]
+readme = "README.md"
 
 [dependencies]
 futures = "0.1"
