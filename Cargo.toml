@@ -2,6 +2,12 @@
 name = "stream-lines"
 version = "0.1.0"
 authors = ["softprops <d.tangren@gmail.com>"]
+description = "lined oriented rustlang Streams"
+documentation = "https://softprops.github.io/stream-lines"
+homepage = "https://github.com/softprops/stream-lines"
+repository = "https://github.com/softprops/stream-lines"
+keywords = ["futures", "streams", "lines"]
+license = "MIT"
 readme = "README.md"
 
 [dependencies]
