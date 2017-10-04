@@ -14,5 +14,8 @@ readme = "README.md"
 travis-ci = { repository = "softprops/stream-lines" }
 coveralls = { repository = "softprops/stream-lines" }
 
+[dev_dependencies]
+tokio-core = "0.1"
+
 [dependencies]
 futures = "0.1"
