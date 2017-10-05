@@ -10,7 +10,7 @@ use tokio_core::reactor::Core;
 
 fn main() {
     let mut core = Core::new().unwrap();
-    let chunks = vec!["hello ", "world\n", "\n", "what a\nlovely", "\nday\n"];
+    let chunks = vec!["\nhello ", "world\n", "\n", "what a\nlovely", "\nday\n"];
     let stream = iter_ok::<_, FromUtf8Error>(chunks);
     let print = stream_lines::strings(stream).for_each(|line| Ok(println!("{}", line)));
     core.run(print).unwrap();
