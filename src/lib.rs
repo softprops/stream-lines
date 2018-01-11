@@ -1,11 +1,16 @@
 //! Lined-oriented Rustlang [Streams](http://alexcrichton.com/futures-rs/futures/stream/index.html)
 //!
 //! Streams represent spools of results computed asyncronously. They are the async
-//! analog to Rustlang's Iterator type
+//! analog to Rustlang's Iterator type.
 //!
 //! This crate represents a Stream transformer over Stream's of `AsRef<[u8]>`
-//! that result in Stream's of line-oriented results.
+//! that result in Stream's of line-oriented values. Chunks of bytes are delimted
+//! by LF (\n) and optionally CRLF (\r\n) patterns.
 //!
+//! You may find this crate useful if you are interfacing with a line-oriented
+//! protocol transmited over a network connection. Networks may split your protocol
+//! into uneven chunks of bytes. This crate buffers those chunks and yields
+//! a Stream that reconnects those lines.
 
 #![warn(missing_docs)]
 
@@ -17,9 +22,11 @@ use std::string::FromUtf8Error;
 use futures::{Async, Poll, Stream};
 use futures::stream::Fuse;
 
-const NEWLINE: u8 = b'\n';
+const LF: u8 = b'\n';
+const CR: u8 = b'\r';
 
-/// Converts to a fused stream into a line oriented stream
+/// Converts a fused `Stream` of bytes into a line-oriented stream
+/// of a target type
 pub struct Lines<S: Stream, O, E> {
     buffered: Option<Vec<u8>>,
     stream: Fuse<S>,
@@ -47,13 +54,17 @@ impl<S: Stream, O, E> Lines<S, O, E> {
     fn next(&mut self, flush: bool) -> Option<Result<O, E>> {
         let buffered = replace(&mut self.buffered, None);
         if let Some(ref buffer) = buffered {
-            let mut split = buffer.splitn(2, |c| *c == NEWLINE);
+            let mut split = buffer.splitn(2, |c| *c == LF);
             if let Some(first) = split.next() {
+                let mut line = first.to_vec();
+                if let Some(&CR) = line.last() {
+                    line.pop();
+                }
                 if let Some(second) = split.next() {
                     replace(&mut self.buffered, Some(second.to_vec()));
-                    return Some((self.into)(first.to_vec()));
+                    return Some((self.into)(line));
                 } else if flush {
-                    return Some((self.into)(first.to_vec()));
+                    return Some((self.into)(line));
                 }
             }
         }
@@ -101,9 +112,33 @@ mod tests {
     use super::*;
     use futures::stream::iter_ok;
     #[test]
-    fn it_works() {
+    fn it_delimits_by_lf() {
         let chunks =
             vec!["hello ", "world\n", "\n", "what a\nlovely", "\nday\n"];
+        let stream = iter_ok::<_, FromUtf8Error>(chunks);
+        let mut lines = strings(stream);
+        assert_eq!(lines.poll().unwrap(), Async::NotReady);
+        assert_eq!(
+            lines.poll().unwrap(),
+            Async::Ready(Some("hello world".into()))
+        );
+        assert_eq!(lines.poll().unwrap(), Async::Ready(Some("".into())));
+        assert_eq!(lines.poll().unwrap(), Async::Ready(Some("what a".into())));
+        assert_eq!(lines.poll().unwrap(), Async::Ready(Some("lovely".into())));
+        assert_eq!(lines.poll().unwrap(), Async::Ready(Some("day".into())));
+        assert_eq!(lines.poll().unwrap(), Async::Ready(Some("".into())));
+        assert_eq!(lines.poll().unwrap(), Async::Ready(None));
+    }
+
+    #[test]
+    fn it_delimits_by_crlf() {
+        let chunks = vec![
+            "hello ",
+            "world\r\n",
+            "\r\n",
+            "what a\r\nlovely",
+            "\r\nday\r\n",
+        ];
         let stream = iter_ok::<_, FromUtf8Error>(chunks);
         let mut lines = strings(stream);
         assert_eq!(lines.poll().unwrap(), Async::NotReady);
