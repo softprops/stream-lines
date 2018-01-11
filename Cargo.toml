@@ -16,6 +16,8 @@ coveralls = { repository = "softprops/stream-lines" }
 
 [dev_dependencies]
 tokio-core = "0.1"
+hyper = "0.11"
+hyper-tls = "0.1.2"
 
 [dependencies]
 futures = "0.1"
