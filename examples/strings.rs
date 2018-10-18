@@ -1,18 +1,19 @@
 extern crate futures;
 extern crate stream_lines;
-extern crate tokio_core;
+extern crate tokio;
 
 use std::string::FromUtf8Error;
 
-use futures::Stream;
 use futures::stream::iter_ok;
-use tokio_core::reactor::Core;
+use futures::Stream;
+use tokio::runtime::Runtime;
 
 fn main() {
-    let mut core = Core::new().unwrap();
     let chunks = vec!["\nhello ", "world\n", "\n", "what a\nlovely", "\nday\n"];
     let stream = iter_ok::<_, FromUtf8Error>(chunks);
-    let print =
-        stream_lines::strings(stream).for_each(|line| Ok(println!("{}", line)));
-    core.run(print).unwrap();
+    let print = stream_lines::strings(stream).for_each(|line| Ok(println!("{}", line)));
+    Runtime::new()
+        .expect("failed to initialize runtime")
+        .block_on(print)
+        .expect("failed to execute stream");
 }
