@@ -84,7 +84,7 @@ impl<S: Stream, O, E> Lines<S, O, E> {
         Lines {
             buffered: None,
             stream: stream.fuse(),
-            into: into,
+            into,
         }
     }
 
